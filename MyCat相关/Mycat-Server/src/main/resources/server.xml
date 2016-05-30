@@ -12,7 +12,7 @@
 	<system>
 	<property name="useSqlStat">1</property>  <!-- 1为开启实时统计、0为关闭 -->
 	<property name="defaultSqlParser">druidparser</property>
-		<property name="sequnceHandlerType">1</property>
+		<property name="sequnceHandlerType">1</property><!-- 全局序列生成采用何种方式：0本地文件方式，1数据库方式，3时间戳序列方式 -->
       <!--  <property name="useCompression">1</property>--> <!--1为开启mysql压缩协议-->
 	<!-- <property name="processorBufferChunk">40960</property> -->
 	<!-- 
@@ -34,6 +34,7 @@
 			<property name="frontWriteQueueSize">4096</property> <property name="processors">32</property> -->
 		<property name="enableDistributedTransactions">false</property>
 	</system>
+	<!--定义用户，用户名为spilt1，密码为spilt1，管理的逻辑库有mycat,blog_user,blog_category,blog_article-->
 	<user name="spilt1">
 		<property name="password">spilt1</property>
 		<property name="schemas">mycat,blog_user,blog_category,blog_article</property>

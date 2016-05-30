@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<!DOCTYPE mycat:schema SYSTEM "schema.dtd">
+<mycat:schema xmlns:mycat="http://io.mycat/">
+
+	<!--纵向分表、横向分表实例-->
+	<schema name="mycat" checkSQLschema="false" sqlMaxLimit="100">
+		<table name="MYCAT_SEQUENCE" primaryKey="name" type="global" dataNode="nodeMycat" />
+	</schema>
+	<schema name="blog_user" checkSQLschema="false" sqlMaxLimit="100">
+		<table name="user_info" primaryKey="id" type="global" dataNode="nodeUser" />
+	</schema>
+	<schema name="blog_category" checkSQLschema="false" sqlMaxLimit="100">
+		<table name="category" primaryKey="id" type="global" dataNode="nodeCategory" />
+		<table name="tag" primaryKey="id" type="global" dataNode="nodeCategory" />
+		<table name="link" primaryKey="id" type="global" dataNode="nodeCategory" />
+	</schema>
+	<schema name="blog_article" checkSQLschema="false" sqlMaxLimit="100">
+		<table name="article" primaryKey="user_id" dataNode="nodeArticle01,nodeArticle02" rule="mod-long" />
+		<table name="article_tags" primaryKey="id" type="global" dataNode="nodeArticle01,nodeArticle02" />
+	</schema>
+
+	<!--单库分表-->
+	<schema name="sub_person" checkSQLschema="false" sqlMaxLimit="100">
+		<table name="person" subTables="person_$1-6" primaryKey="id" rule="mod-long" dataNode="nodePerson" />
+		<table name="tmonth" subTables="tmonth_20160$5-6" primaryKey="id" rule="sharding-by-month" dataNode="nodePerson" />
+		<table name="tyear" subTables="tyear_201$6-7" primaryKey="id" rule="sharding-by-year" dataNode="nodePerson" />
+	</schema>
+
+	<!--读写分离-->
+	<schema name="springjpa" checkSQLschema="false" sqlMaxLimit="100">
+		<table name="user" dataNode="rwNode" primaryKey="id" autoIncrement="true" type="global"/>
+	</schema>
+
+	<!--纵向分表、横向分表实例-->
+	<dataNode name="nodeMycat" dataHost="vmHost01" database="mycat" />
+	<dataNode name="nodeUser" dataHost="vmHost01" database="blog01" />
+	<dataNode name="nodeCategory" dataHost="vmHost01" database="blog02" />
+	<dataNode name="nodeArticle01" dataHost="vmHost01" database="blog_article01" />
+	<dataNode name="nodeArticle02" dataHost="vmHost01" database="blog_article02" />
+
+	<!--单库分表-->
+	<dataNode name="nodePerson" dataHost="dataHost01" database="subtables" />
+
+	<!--读写分离-->
+	<dataNode name="rwNode" dataHost="vmHost02" database="springjpa" />
+
+	<!--纵向分表、横向分表实例-->
+	<dataHost name="vmHost01" maxCon="1000" minCon="10" balance="0"
+			  writeType="0" dbType="mysql" dbDriver="native">
+		<heartbeat>select 1</heartbeat>
+		<writeHost host="hostM1" url="172.16.232.129:3306" user="root" password="root"/>
+	</dataHost>
+
+	<!--单库分表-->
+	<dataHost name="dataHost01" maxCon="1000" minCon="10" balance="0"
+			  writeType="0" dbType="mysql" dbDriver="native">
+		<heartbeat>select 1</heartbeat>
+		<writeHost host="hostM1" url="127.0.0.1:3306" user="root" password="root"/>
+	</dataHost>
+
+	<!--读写分离-->
+	<dataHost name="vmHost02" maxCon="1000" minCon="10" balance="1"
+			  writeType="0" dbType="mysql" dbDriver="native" switchType="1"  slaveThreshold="100">
+		<heartbeat>select 'x'</heartbeat>
+		<writeHost host="hostM1" url="172.16.232.129:3306" user="root"
+				   password="root">
+			<!-- can have multi read hosts -->
+			<readHost host="hostS2" url="172.16.232.130:3306" user="root" password="root" />
+		</writeHost>
+	</dataHost>
+
+</mycat:schema>

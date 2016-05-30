@@ -9,10 +9,11 @@
 	under the License. -->
 <!DOCTYPE mycat:rule SYSTEM "rule.dtd">
 <mycat:rule xmlns:mycat="http://io.mycat/">
+	<!--tableRule指定分表规则，name属性为此规则命名唯一值-->
 	<tableRule name="rule1">
 		<rule>
-			<columns>id</columns>
-			<algorithm>func1</algorithm>
+			<columns>id</columns><!--分表字段-->
+			<algorithm>func1</algorithm><!--分表方法-->
 		</rule>
 	</tableRule>
 

@@ -599,8 +599,6 @@ public class DruidSelectParser extends DefaultDruidParser {
                 column=((SQLIdentifierExpr) sqlExpr).getName();
             } else if(sqlExpr instanceof SQLMethodInvokeExpr){
 				column = ((SQLMethodInvokeExpr) sqlExpr).toString();
-			}else if (sqlExpr instanceof SQLPropertyExpr){
-				column = ((SQLPropertyExpr) sqlExpr).toString();
 			} else {
                 //todo czn
                 SQLExpr expr = ((MySqlOrderingExpr) sqlExpr).getExpr();

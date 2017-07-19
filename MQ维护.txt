@@ -1,0 +1,14 @@
+启动
+nohup sh mqnamesrv &
+nohup sh mqbroker -c ../conf/2m-noslave/broker-a.properties  >/dev/null 2>&1 &
+
+关闭
+sh mqshutdown broker
+sh mqshutdown namesrv
+
+创建主题
+sh mqadmin updateTopic -c test -n 10.168.0.25:9876 -o false -p 6 -t  WECHAT_OPERATEREQUEST
+
+
+创建生产者消费者
+sh mqadmin updateSubGroup -c test -d false -m false -n 10.168.0.25:9876  -r 0 -s true -g WechatProducerGroup

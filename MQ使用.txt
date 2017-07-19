@@ -1,0 +1,77 @@
+
+开启nameserver 
+nohup sh mqnamesrv & 
+
+启动master 多master情况
+nohup sh mqbroker -c $ROCKETMQ_HOME/conf/2m-noslave/broker-a.properties &  >/dev/null 2>&1 &
+
+查看toplist
+mqadmin topicList -n 10.11.0.240:9876
+
+创建和更新主题
+
+DECODE模块：
+
+sh mqadmin updateSubGroup -c orieangebdmq -d false -m false -n 10.11.0.238:9876  -r 0 -s true -g DecodeProducerGroup
+
+生产主题：CORE_BD_TXXXRECORD CORE_BD_DWXXRECORD 
+mqadmin updateTopic -n 10.11.0.238:9876 -t CORE_BD_DWXXRECORD -c orieangebdmq
+mqadmin updateTopic -n 10.11.0.238:9876 -t CORE_BD_TXXXRECORD -c orieangebdmq 
+
+DATA模块
+
+
+sh mqadmin updateSubGroup -c orieangebdmq -d false -m false -n 10.11.0.238:9876  -r 0 -s true -g DataProducerGroup
+sh mqadmin updateSubGroup -c orieangebdmq -d false -m false -n 10.11.0.238:9876  -r 0 -s true -g DataConsumerGroup
+
+消费主题：CORE_BD_TXXXRECORD CORE_BD_DWXXRECORD CORE_BD_TXXXREQUEST  
+mqadmin updateTopic -n 10.11.0.240:9876 -t CORE_BD_TXXXREQUEST  -c orieangebdmq
+mqadmin updateTopic -n 10.11.0.240:9876 -t CORE_BD_MSGSENDLOG  -c orieangebdmq
+mqadmin updateTopic -n 10.11.0.240:9876 -t CORE_BD_DISTRIBUTELOG  -c orieangebdmq
+mqadmin updateTopic -n 10.11.0.240:9876 -t DECODE_MAINSTATIONSTATUS -c orieangebdmq
+mqadmin updateTopic -n 10.11.0.240:9876 -t PUSH_PUSHCLIENTONLINE -c orieangebdmq
+mqadmin updateTopic -n 10.11.0.240:9876 -t PUSH_MOBILENOMANAGE -c orieangebdmq
+mqadmin updateTopic -n 10.11.0.240:9876 -t NET_GRRSONLINETODATA -c orieangebdmq
+mqadmin updateTopic -n 10.11.0.240:9876 -t WECHAT_OPERATEREQUEST -c orieangebdmq
+
+生产主题
+mqadmin updateTopic -n 10.11.0.240:9876 -t CORE_BD_DWXXTOPUSHTOSEND  -c orieangebdmq
+mqadmin updateTopic -n 10.11.0.240:9876 -t CORE_BD_DWXXTORESTFULTODISTRIBUTE -c orieangebdmq
+mqadmin updateTopic -n 10.11.0.240:9876 -t CORE_BD_TXXXTOPUSHTOSEND -c orieangebdmq
+mqadmin updateTopic -n 10.11.0.240:9876 -t CORE_BD_TXXXTORESTFULTODISTRIBUTE -c orieangebdmq
+mqadmin updateTopic -n 10.11.0.240:9876 -t CORE_BD_MSGTOSMSTOSEND -c orieangebdmq
+mqadmin updateTopic -n 10.11.0.240:9876 -t CORE_BD_MSGTOWECHATTOSEND -c orieangebdmq
+mqadmin updateTopic -n 10.11.0.240:9876 -t CORE_BD_MSGTONETTOSEND -c orieangebdmq
+mqadmin updateTopic -n 10.11.0.240:9876 -t CORE_BD_MSGTOCOMMANDTOSEND -c orieangebdmq
+mqadmin updateTopic -n 10.11.0.240:9876 -t DATA_STATETOWECHAT -c orieangebdmq
+mqadmin updateTopic -n 10.11.0.240:9876 -t DATA_MOBILENOSTOPUSH -c orieangebdmq
+
+
+
+
+
+
+
+
+
+
+rm -rf /home/xcbd/tomcat/webapps/OriBdDecodeService/WEB-INF/OriBdDecodeService_logs/OriBdDecodeService.log
+
+vi /home/xcbd/tomcat/webapps/OriBdDecodeService/WEB-INF/OriBdDecodeService_logs/OriBdDecodeService.log
+vi /home/xcbd/tomcat/webapps/OriBdDataService/WEB-INF/OriBdDataService_logs/OriBdDataService.log
+
+
+cd /home/xcbd/tomcat/bin
+
+查看Topic 路由信息
+mqadmin topicRoute -n 10.11.0.240:9876 
+
+
+10.11.0.240mqnameserver1
+192.168.1.102  mqnameserver2
+192.168.1.100  rocketmq-master1
+192.168.1.101  rocketmq-master2
+
+查看Topic 统计信息
+
+sh mqadmin topicStatus -t CORE_BD_TXXXRECORD -n 10.11.0.238:9876 

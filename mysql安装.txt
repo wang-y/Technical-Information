@@ -1,0 +1,14 @@
+
+tar -zxvf mysql-5.6.12-linux-glibc2.5-x86_64.tar.gz 
+
+mv mysql-5.6.12-linux-glibc2.5-x86_64 mysql
+
+groupadd mysql
+
+useradd -r -g mysql mysql -d /home/xcbd/mysql
+
+passwd mysql
+
+chown -R mysql:mysql /home/xcbd/mysql
+
+/home/xcbd/mysql/scripts/mysql_install_db --user=mysql --basedir=/home/xcbd/mysql --datadir=/home/xcbd/mysql/data

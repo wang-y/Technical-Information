@@ -1,0 +1,834 @@
+# 查看物理CPU个数
+cat /proc/cpuinfo| grep "physical id"| sort| uniq| wc -l
+# 查看每个物理CPU中core的个数(即核数)
+cat /proc/cpuinfo| grep "cpu cores"| uniq
+
+ip配置
+vim /etc/sysconfig/network-scripts/ifcfg-eth0  
+BOOTPROTO="static" #dhcp改为static   
+ONBOOT="yes" #开机启用本配置  
+IPADDR=192.168.1.100 #静态IP  
+GATEWAY=192.168.1.10#默认网关  
+NETMASK=255.255.255.0 #子网掩码  
+DNS1=119.6.6.6 #DNS 配置  
+
+
+jdk安装
+rpm -qa | grep openjdk | grep -v grep 
+rpm -e –nodeps java-1.7.0-openjdk-1.7.0.75-2.5.4.2.el7_0.x86_64 
+tar -zxvf jdk-8u71-linux-x64.tar.tar.gz 
+
+mv jdk-8u71 java
+
+vi /etc/profile 
+
+export JAVA_HOME=/home/xcbd/java 
+export CLASSPATH=.:$JAVA_HOME/jre/lib/rt.jar:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar:$JAVA_HOME/lib/RXTXcomm.jar
+export PATH=$PATH:$JAVA_HOME/bin
+
+source /etc/profile
+java -version 
+ 
+
+tomcat安装
+tar -zxvf apache-tomcat-8.0.30.tar
+vi /home/xcbd/tomcat/bin/catalina.sh
+
+JAVA_HOME=/home/xcbd/java
+JAVA_OPTS="-server -Xms800m -Xmx800m -XX:PermSize=64M -XX:MaxNewSize=256m -XX:MaxPermSize=128m -Djava.awt.headless=true -Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8"
+CATALINA_HOME=/home/xcbd/tomcat
+
+./startup.sh
+
+拷贝至 cp catalina.sh  /etc/init.d/（重命名为tomcat）
+修改tomcat配置server.xml参数 URIEncoding="UTF-8"
+
+
+
+firewall-cmd --zone=public --add-port=8080/tcp --permanent
+firewall-cmd --reload
+
+
+
+查看是否停止成功：ps -ef|grep java
+杀掉进程; kill-9 pid
+
+配置HTTPS请求
+修改tomcat配置文件server.xml
+   <Connector SSLEnabled="true" 
+              clientAuth="false"
+              keystoreFile="/usr/local/tomcat/_.orieange.com.jks" 
+              keystorePass="clzbbhZ123"
+              maxThreads="150" 
+              port="443" 
+              protocol="HTTP/1.1" 
+              scheme="https" 
+              secure="true" 
+              sslProtocol="TLS"
+           
+              compression="on"
+              compressionMinSize="2048"
+              compressableMimeType="text/html,text/xml,text/plain,text/css,text/javascript,text/json,application/x-javascript,application/javascript,application/json"
+              useSendfile="false"
+              SSLDisableCompression="false"
+/>
+
+将tomcat配置到service中
+1.将tomcat下的catalina.sh拷贝到/etc/init.d下并修改名称为tomcat
+cp /home/ori/tomcat/bin/catalina.sh /etc/init.d
+cd /etc/init.d
+mv catalina.sh tomcat
+
+2修改tomcat文件添加
+CATALINA_HOME=/home/ori/tomcat
+# chkconfig: 2345 10 90
+# description:Tomcat service
+chkconfig是linux管理启动服务的,可以通sudo apt-get install chkconfig安装
+
+3设置开机启动
+chkconfig --add tomcat
+有两种方法，可以通chkconfig tomcat on来完成设置
+
+
+
+
+
+
+mysql安装
+
+1：检查是否已安装，grep的-i选项表示匹配时忽略大小写
+rpm -qa|grep -i mysql
+如果有就卸载
+rpm -e mysql-libs-5.1.61-4.el6.x86_64 --nodeps
+
+
+2：解压tar包
+tar -zxvf mysql-5.6.12-linux-glibc2.5-x86_64.tar
+
+
+3：添加系统mysql组和mysql用户：
+groupadd mysql
+useradd -r -g mysql mysql -d /home/xcbd/mysql
+
+4：安装数据库
+进入安装mysql软件目录：执行命令 cd /home/xcbd/mysql
+修改当前目录拥有者为mysql用户：执行命令 chown -R mysql:mysql /home/xcbd/mysql
+安装数据库：执行命令 ./scripts/mysql_install_db --user=mysql --basedir=/home/xcbd/mysql --datadir=/home/xcbd/mysql/data
+修改当前目录拥有者为root用户：执行命令 chown -R root:root /home/xcbd/mysql
+修改当前data目录拥有者为mysql用户：执行命令 chown -R mysql:mysql /home/xcbd/mysql/data
+
+
+5：配置文件
+cd /home/xcbd/mysql/support-files
+cp mysql.server /etc/init.d/mysql
+
+rm -rf /etc/my.cnf
+rm -rf /etc/my.cnf.d   
+
+vi /etc/init.d/mysql  #若mysql的安装目录是/usr/local/mysql,则可省略此步
+修改文件中的两个变更值
+basedir=/home/xcbd/mysql
+datadir=/home/xcbd/mysql/data
+
+
+6：配置环境变量
+vi /etc/profile
+export MYSQL_HOME="/home/xcbd/mysql"
+export PATH="$PATH:$MYSQL_HOME/bin"
+
+7：如果是centos系统，默认会开启selinux
+解决方法：关闭它，打开/etc/selinux/config，把SELINUX=enforcing改为SELINUX=disabled后存盘退出重启机器试试。
+
+8：启动mysql服务
+执行命令service mysql start
+执行命令：chkconfig --list mysqld 看到mysql服务说明启动成功
+
+9:让mysql服务加入到开机启动指令管理的服务列表中
+chkconfig --add mysql
+chkconfig mysql on
+
+
+10.登录mysql及改密码与配置远程访问
+mysqladmin -u root password 'ori18502800930'     #修改root用户密码
+mysql -u root -p     #登录mysql,需要输入密码
+mysql>GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY 'ori18502800930' WITH GRANT OPTION;     #允许root用户远程访问
+mysql>FLUSH PRIVILEGES;     #刷新权限
+mysql>exit
+
+
+11：mysql----GRANT
+给来自192.168.155.1的用户user1分配可对数据库dbname的tablename表进行SELECT,INSERT,UPDATE,DELETE,CREATE,DROP等操作的权限，并设定密码为123456。
+对表操作权限还有好多如ALTER等
+mysql>GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP ON dbname.tablename TO 'user1'@'192.168.155.1' IDENTIFIED BY '123456';
+
+给来自192.168.155.1的用户user2分配可对数据库dbname所有表进行所有操作的权限，并设定口令为123456。
+mysql>GRANT ALL PRIVILEGES ON dbname.* TO 'user2'@'192.168.155.1' IDENTIFIED BY '123456';
+
+给来自192.168.155.1的用户user3分配可对所有数据库的所有表进行所有操作的权限，并设定口令为123456。
+mysql>GRANT ALL PRIVILEGES ON *.* TO 'user3'@'192.168.155.1' IDENTIFIED BY '123456';
+
+给本机用户user4分配可对所有数据库的所有表进行所有操作的权限，并设定口令为123456。
+mysql>GRANT ALL PRIVILEGES ON *.* TO 'user4'@'localhost' IDENTIFIED BY '123456';
+
+
+12：mysql忘记root密码后，如何更改密码
+停止mysql服务，或者命令systemctl stop mysql
+service mysql stop
+
+进入/usr/local/mysql
+cd $MYSQL_HOME
+
+通过mysqld_safe启动mysql，并且启动mysql时不启动grant-tables授权表
+./bin/mysqld_safe --basedir=/usr/local/mysql --datadir=/usr/local/mysql/data --skip-grant-tables &
+
+登陆mysql
+mysql -u root mysql
+
+修改root密码
+mysql>UPDATE user SET password=PASSWORD("new_password") WHERE user='root';
+
+刷新
+mysql>FLUSH PRIVILEGES;
+
+退出mysql
+mysql>exit;
+
+
+redis安装
+第一部分：安装redis
+mkdir /jianglong/redis  
+wget http://redis.googlecode.com/files/redis-2.6.14.tar.gz  
+tar xzf redis-2.6.14.tar.gz 
+cd redis  
+make PREFIX=/home/xcbd/redis install #安装到指定目录中
+
+注意上面的最后一行，我们通过PREFIX指定了安装的目录。如果make失败，一般是你们系统中还未安装gcc,那么可以通过yum安装
+yum install gcc
+
+在安装redis成功后，你将可以在/jianglong/redis看到一个bin的目录，里面包括了以下文件:
+redis-benchmark  redis-check-aof  redis-check-rdb  redis-cli  redis-sentinel  redis-server
+
+第二部分：将redis做成一个服务 
+1.复制脚本到/etc/rc.d/init.d目录
+cp utils/redis_init_script /etc/rc.d/init.d/redis(将redis_init_script复制到/etc/rc.d/init.d/，同时易名为redis)
+如果这时添加注册服务：chkconfig --add redis 将报以下错误：redis服务不支持chkconfig(为此，我们需要更改redis脚本.)
+
+2.更改redis脚本
+打开使用vi打开脚本，查看脚本信息：vi /etc/init.d/redis
+看到的内容如下(下内容是更改好的信息)： 
+#!/bin/sh 
+#chkconfig: 2345 80 90 
+# Simple Redis init.d script conceived to work on Linux systems 
+# as it does use of the /proc filesystem. 
+   
+REDISPORT=6379 
+EXEC=/home/xcbd/redis/bin/redis-server
+CLIEXEC=/home/xcbd/redis/bin/redis-cli
+
+   
+PIDFILE=/var/run/redis_${REDISPORT}.pid 
+CONF="/etc/redis/${REDISPORT}.conf" 
+   
+case "$1" in 
+    start) 
+        if [ -f $PIDFILE ] 
+        then 
+                echo "$PIDFILE exists, process is already running or crashed" 
+        else 
+                echo "Starting Redis server..." 
+                $EXEC $CONF & 
+        fi 
+        ;; 
+    stop) 
+        if [ ! -f $PIDFILE ] 
+        then 
+                echo "$PIDFILE does not exist, process is not running" 
+        else 
+                PID=$(cat $PIDFILE) 
+                echo "Stopping ..." 
+                $CLIEXEC -p $REDISPORT shutdown 
+                while [ -x /proc/${PID} ] 
+                do 
+                    echo "Waiting for Redis to shutdown ..." 
+                    sleep 1 
+                done 
+                echo "Redis stopped" 
+        fi 
+        ;; 
+    *) 
+        echo "Please use start or stop as first argument" 
+        ;; 
+esac 
+
+
+
+修改EXEC、CLIEXEC参数： 
+#chkconfig: 2345 80 90 （添加）
+EXEC=/jianglong/redis/bin/redis-server（修改）   
+CLIEXEC=/jianglong/redis/bin/redis-cli （修改）
+$EXEC $CONF & (注意后面的那个“&”，即是将服务转到后面运行的意思，否则启动服务时，Redis服务将占据在前台，占用了主用户界面，造成其它的命令执行不了)
+
+
+将redis配置文件拷贝到/etc/redis/${REDISPORT}.conf 
+mkdir /etc/redis 
+cp redis.conf /etc/redis/6379.conf
+
+这样，redis服务脚本指定的CONF就存在了。默认情况下，Redis未启用认证，可以通过开启6379.conf的requirepass 指定一个验证密码。 
+以上操作完成后，即可注册yedis服务：chkconfig --add redis
+启动redis服务 service redis start 
+
+
+
+第三，将Redis的命令所在目录添加到系统参数PATH中 
+修改profile文件： vi /etc/profile
+在最后行追加: export PATH="$PATH:/jianglong/redis/bin"
+然后马上应用这个文件：source /etc/profile  
+ 这样就可以直接调用redis-cli的命令了，如下所示： 
+$ redis-cli   
+至此，redis 就成功安装了。 
+
+
+第四 redis 修改默认配置（/etc/redis/6379.conf）
+daemonize yes #默认为on。yes为转为守护进程，否则启动时会每隔5秒输出一行监控信息  
+save 900 1 #900秒内如果有一个key发生变化时，则将数据写入进镜像  
+maxmemory 256000000 #分配256M内存 
+requirepass jianglong(密码)
+#bind 127.0.0.1(注释掉bind)
+protected-mode no(禁用保护模式)
+
+
+
+
+
+
+nginx安装
+
+第一步下载相关组件
+pcre	http://www.pcre.org/	http://120.52.73.43/jaist.dl.sourceforge.net/project/pcre/pcre/8.38/pcre-8.38.tar.gz
+
+openssl	https://www.openssl.org/source/	   https://www.openssl.org/source/openssl-1.0.2h.tar.gz
+
+zlib	http://zlib.net/	http://zlib.net/zlib-1.2.8.tar.gz
+
+nginx	http://nginx.org/	http://nginx.org/download/nginx-1.10.0.tar.gz
+
+
+第二步解压软件
+cd /tmp
+tar -zxf nginx-1.10.0.tar.gz 
+tar -zxf pcre-8.38.tar.gz
+tar -xf zlib-1.2.8.tar.gz
+tar -zxf openssl-1.0.2h.tar.gz
+
+第三步：执行编译
+cd /jianglong/nginx-1.10.1
+./configure --prefix=/jianglong/nginx --pid-path=/jianglong/nginx/nginx.pid --error-log-path=/jianglong/nginx/error.log --http-log-path=/jianglong/nginx/access.log --with-http_ssl_module --with-pcre=/jianglong/pcre-8.38 --with-zlib=/jianglong/zlib-1.2.8 --with-openssl=/jianglong/openssl-1.0.2h
+
+
+第四步：然后执行make安装
+
+
+第五步：执行make install
+
+
+第六步：验证nginx
+./jianglong/nginx/sbin/nginx -V
+启动./nginx
+访问：http://192.168.20.254
+
+nginx的开启，关闭，重启
+
+开启：
+cd /jianglong/nginx/sbin
+./nginx
+
+重启：
+./nginx -t -c /jianglong/nginx/conf/nginx.conf(判断配置文件是否正确)
+cd  /jianglong/nginx/sbin
+./nginx -t(或者)./nginx -s reload
+
+关闭
+ps -ef | grep nginx
+从容停止   kill -QUIT 主进程号
+快速停止   kill -TERM 主进程号
+强制停止   kill -9 主进程号
+
+
+
+
+配置HTTPS请求(nginx.conf配置如下)
+user  nginx;
+worker_processes  1;
+
+error_log  /var/log/nginx/error.log warn;
+pid        /var/run/nginx.pid;
+
+
+events {
+    worker_connections  1024;
+}
+
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"';
+
+    access_log  /var/log/nginx/access.log  main;
+
+    sendfile        on;
+    #tcp_nopush     on;
+
+    keepalive_timeout  65;
+
+    #gzip  on;
+
+    # http  负载均衡配置    
+    upstream tomcat_http_cluster {
+  
+      #根据ip计算将请求分配各那个后端tomcat，许多人误认为可以解决session问题，其实并不能。  
+      #同一机器在多网情况下，路由切换，ip可能不同  
+      #ip_hash;   
+        
+      server localhost:8080 weight=5; 
+      # server 139.129.29.222:8080 weight=15;
+
+    } 
+  
+    server {  
+
+            listen       80;  
+            server_name  localhost;     
+  
+            location / {  
+                    proxy_connect_timeout   3;  
+                    proxy_send_timeout      30;  
+                    proxy_read_timeout      30;  
+                        proxy_pass http://tomcat_http_cluster;  
+            }                
+    } 
+     
+    # https 负载均衡配置   
+    upstream tomcat_https_cluster {
+  
+      #根据ip计算将请求分配各那个后端tomcat，许多人误认为可以解决session问题，其实并不能。
+      #同一机器在多网情况下，路由切换，ip可能不同
+      #ip_hash;
+
+      server localhost:8443 weight=5;
+      # server 139.129.29.222:443 weight=15;
+
+    }
+
+
+    server {
+        listen       443;
+        server_name  localhost;
+        ssl                  on;
+        ssl_certificate      /etc/nginx/https_conf/_.orieange.com.crt;
+        ssl_certificate_key  /etc/nginx/https_conf/_.orieange.com.key;
+        ssl_session_timeout  5m;
+        ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+        ssl_ciphers  ECDHE-RSA-AES128-GCM-SHA256:HIGH:!aNULL:!MD5;
+        ssl_prefer_server_ciphers   on;
+	#ssl_ciphers "EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH";
+
+	ssl_session_cache shared:SSL:10m;
+	#add_header Strict-Transport-Security "max-age=63072000; includeSubdomains; preload";
+	add_header X-Frame-Options DENY;
+	add_header X-Content-Type-Options nosniff;
+	#ssl_session_tickets off; # Requires nginx >= 1.5.9
+	ssl_stapling on; # Requires nginx >= 1.3.7
+	#ssl_stapling_verify on; # Requires nginx => 1.3.7
+	#resolver $DNS-IP-1 $DNS-IP-2 valid=300s;
+	resolver_timeout 5s;        
+    
+        location /{
+             proxy_connect_timeout   3;
+             proxy_send_timeout      30;
+             proxy_read_timeout      30;  
+                    proxy_pass https://tomcat_https_cluster;
+
+        }
+   }
+
+
+
+    include /etc/nginx/conf.d/*.conf;
+}
+
+
+
+
+
+
+防火墙修改（CentOS 7 默认使用firewalld来管理iptables规则）
+systemctl disable firewalld
+yum remove firewalld -y
+yum install iptables-services -y
+systemctl enable iptables
+cp /usr/libexec/iptables/iptables.init /etc/init.d/iptables/etc/init.d/iptables save
+
+允许rsync通过防火墙
+为防重启将规则清除，我将规则直接加到规则配置文件里边了(/etc/sysconfig/iptables)，如下：
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 9876 -j ACCEPT
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 10911 -j ACCEPT
+注意，这条规则要加在REJECT规则前。
+
+
+
+
+
+安装rocketmq
+tar -zxvf alibaba-rocketmq-3.2.6.tar.gz
+export ROCKETMQ_HOME=/home/jianglong/tools/alibaba-rocketmq
+export PATH=$PATH::$ROCKETMQ_HOME/bin
+source /etc/profile
+
+单master安装启动
+chmod +x mqadmin mqbroker mqfiltersrv mqshutdown  mqnamesrv
+nohup sh mqnamesrv &
+export NAMESRV_ADDR=192.168.1.100:9876
+nohup sh mqbroker &
+
+查看启动状态
+jps
+tail -f nohup.out 
+关闭rocket服务
+sh mqshutdown namesrv
+sh mqshutdown broker
+
+
+
+
+集群安装rocketmq(单个master； 多个master; 多 Master 多slaver 异步复制;  多 Master 多slaver 同步双写)
+多 Master部署(多个master)：
+
+# vim /etc/hosts(主机名修改)
+(mqnameserver1)
+192.168.1.102  mqnameserver1
+192.168.1.100  rocketmq-master1
+192.168.1.101  rocketmq-master2
+sed -i  '/HOSTNAME/d' /etc/sysconfig/network
+echo 'HOSTNAME=mqnameserver1'  >> /etc/sysconfig/network
+hostname mqnameserver1
+(master1)
+192.168.1.102  mqnameserver1
+192.168.1.100  rocketmq-master1
+sed -i  '/HOSTNAME/d' /etc/sysconfig/network
+echo 'HOSTNAME=rocketmq-master1'  >> /etc/sysconfig/network
+hostname rocketmq-master1
+(master2)
+192.168.1.102  mqnameserver1
+192.168.1.101  rocketmq-master2
+sed -i  '/HOSTNAME/d' /etc/sysconfig/network
+echo 'HOSTNAME=rocketmq-master2'  >> /etc/sysconfig/network
+hostname rocketmq-master2
+
+RocketMQ配置
+默认配置模板
+(broker)
+(生成)sh mqbroker -m > broker.p
+修改配置
+加载配置 nohup sh mqbroker -c broker.p
+(namesrv)
+
+(mqnameserver1)
+配置文件不变
+(master1)
+vim /home/jianglong/tools/alibaba-rocketmq/conf/2m-noslave/broker-a.properties
+brokerClusterName=orieangemq
+namesrvAddr=mqnameserver1:9876
+brokerName=master1
+brokerId=0
+flushIntervalCommitLog=1000
+maxTransferBytesOnMessageInMemory=262144
+maxTransferCountOnMessageInMemory=32
+maxTransferBytesOnMessageInDisk=65536
+maxTransferCountOnMessageInDisk=8
+accessMessageInMemoryMaxRatio=40
+listenPort=10911
+deleteWhen=04
+fileReservedTime=72
+mapedFileSizeCommitLog=1073741824
+mapedFileSizeConsumeQueue=10000000
+destroyMapedFileIntervalForcibly=120000
+redeleteHangedFileInterval=120000
+diskMaxUsedSpaceRatio=88
+defaultTopicQueueNums=4
+maxMessageSize=65536
+flushCommitLogLeastPages=4
+flushConsumeQueueLeastPages=2
+flushCommitLogThoroughInterval=10000
+flushConsumeQueueThoroughInterval=60000
+sendMessageThreadPoolNums=128
+pullMessageThreadPoolNums=128
+flushCommitLogTimed=false
+checkTransactionMessageEnable=false
+rejectTransactionMessage=false
+fetchNamesrvAddrByAddressServer=false
+messageIndexEnable=true
+messageIndexSafe=false
+cleanFileForciblyEnable=true
+autoCreateTopicEnable=true
+autoCreateSubscriptionGroup=true
+brokerRole=Master
+flushDiskType=ASYNC_FLUSH
+storePathRootDir=/data/rocketmq/store/master1
+storePathCommitLog=/data/rocketmq/store/commitlog/master1
+
+master2
+vim /home/jianglong/tools/alibaba-rocketmq/conf/2m-noslave/broker-a.properties
+brokerClusterName=orieangemq
+namesrvAddr=mqnameserver1:9876
+brokerName=master2
+brokerId=0
+flushIntervalCommitLog=1000
+maxTransferBytesOnMessageInMemory=262144
+maxTransferCountOnMessageInMemory=32
+maxTransferBytesOnMessageInDisk=65536
+maxTransferCountOnMessageInDisk=8
+accessMessageInMemoryMaxRatio=40
+listenPort=10911
+deleteWhen=04
+fileReservedTime=72
+mapedFileSizeCommitLog=1073741824
+mapedFileSizeConsumeQueue=10000000
+destroyMapedFileIntervalForcibly=120000
+redeleteHangedFileInterval=120000
+diskMaxUsedSpaceRatio=88
+defaultTopicQueueNums=4
+maxMessageSize=65536
+flushCommitLogLeastPages=4
+flushConsumeQueueLeastPages=2
+flushCommitLogThoroughInterval=10000
+flushConsumeQueueThoroughInterval=60000
+sendMessageThreadPoolNums=128
+pullMessageThreadPoolNums=128
+flushCommitLogTimed=false
+checkTransactionMessageEnable=false
+rejectTransactionMessage=false
+fetchNamesrvAddrByAddressServer=false
+messageIndexEnable=true
+messageIndexSafe=false
+cleanFileForciblyEnable=true
+autoCreateTopicEnable=true
+autoCreateSubscriptionGroup=true
+brokerRole=Master
+flushDiskType=ASYNC_FLUSH
+storePathRootDir=/data/rocketmq/store/master2
+storePathCommitLog=/data/rocketmq/store/commitlog/master2
+
+
+runbroker.sh参数调整(runbroker.sh需要根据内存大小进行适当地调整)
+JAVA_OPT_1="-server-Xms80g -Xmx80g -Xmn20g -XX:PermSize=1g -XX:MaxPermSize=1g"
+
+mkdir -p /data/rocketmq/store/commitlog  /data/logs
+cd /home/jianglong/tools/alibaba-rocketmq/conf && sed -i  's#${user.home}#/data#g' *.xml
+
+启动NameServer【master1、master2】
+cd /home/jianglong/tools/alibaba-rocketmq/bin
+(namesrv)
+service iptables stop
+nohup sh mqnamesrv &
+(master）
+service iptables stop
+nohup sh mqbroker -c ../conf/2m-noslave/broker-a.properties  >/dev/null 2>&1 &
+关闭window防火墙
+
+验证
+netstat -ntlp
+jps
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+CentOS7弃用以前的iptables使用firewall做防火墙，如果要尝试之前防火墙修改开放端口方式可以关闭firewall，安装以前的iptables
+
+查看防火墙状态：firewall-cmd --state 
+
+停止firewall，与之对应的是开启。systemctl start firewalld
+systemctl stop firewalld
+
+禁止firewall开机启动
+systemctl disable firewalld
+
+安装iptables-services
+yum install iptables-services
+
+打开iptables的配置文件(etc/sysconfig/iptables)
+vi文本编辑器
+输入以下内容后保存
+# Firewall configuration written by system-config-firewall
+# Manual customization of this file is not recommended.
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+-A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+-A INPUT -p icmp -j ACCEPT
+-A INPUT -i lo -j ACCEPT
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 22 -j ACCEPT
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 80 -j ACCEPT
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 3306 -j ACCEPT
+-A INPUT -j REJECT --reject-with icmp-host-prohibited
+-A FORWARD -j REJECT --reject-with icmp-host-prohibited
+COMMIT
+如果配置文件中已有内容则只需添加要打开的端口号即可，添加如下行
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 3306 -j ACCEPT
+添加打开的端口号一定在-A INPUT -j REJECT --reject-with icmp-host-prohibited和-A FORWARD -j REJECT --reject-with icmp-host-prohibited之前
+vi /etc/sysconfig/iptables
+
+:wq! #保存退出后重启，对应的开始命令是systemctl start iptables
+systemctl restart iptables
+
+设置iptables防火墙开机启动
+systemctl enable iptables
+
+修改命令
+cp /usr/libexec/iptables/iptables.init /etc/init.d/iptables
+/etc/init.d/iptables save
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+firewall防火墙默认的几个zone（由firewalld 提供的区域按照从不信任到信任的顺序排序）：
+drop
+任何流入网络的包都被丢弃，不作出任何响应，只允许流出的网络连接。即使开放了某些服务(比如http)，这些服务的数据也是不允许通过的。
+block
+任何进入的网络连接都被拒绝，并返回 IPv4 的 icmp-host-prohibited 报文或者 IPv6 的 icmp6-adm-prohibited 报文。只允许由该系统初始化的网络连接。
+public（默认）
+用以可以公开的部分。你认为网络中其他的计算机不可信并且可能伤害你的计算机，只允许选中的服务通过。
+external
+用在路由器等启用伪装的外部网络。你认为网络中其他的计算机不可信并且可能伤害你的计算机，只允许选中的服务通过。
+dmz
+用以允许隔离区（dmz）中的电脑有限地被外界网络访问，只允许选中的服务通过。
+work
+用在工作网络。你信任网络中的大多数计算机不会影响你的计算机，只允许选中的服务通过。
+home
+用在家庭网络。你信任网络中的大多数计算机不会影响你的计算机，只允许选中的服务通过。
+internal
+用在内部网络。你信任网络中的大多数计算机不会影响你的计算机，只允许选中的服务通过。
+trusted
+允许所有网络连接，即使没有开放任何服务，那么使用此zone的流量照样通过（一路绿灯）。
+
+
+
+firewall的使用：
+
+1：开启80端口----------firewall-cmd --zone=public --add-port=20888/tcp --permanent
+出现success表明添加成功
+命令含义：
+--zone #作用域
+--add-port=80/tcp  #添加端口，格式为：端口/通讯协议
+--permanent   #永久生效，没有此参数重启后失效
+firewall-cmd --reload 重新载入
+
+2：重启防火墙---------systemctl restart firewalld.service
+1、运行、停止、禁用firewalld
+启动：# systemctl start  firewalld
+查看状态：# systemctl status firewalld 或者 firewall-cmd --state
+停止：# systemctl disable firewalld
+禁用：# systemctl stop firewalld
+
+
+
+3、配置firewalld
+查看版本：$ firewall-cmd --version
+查看帮助：$ firewall-cmd --help
+查看设置：
+显示状态：$ firewall-cmd --state
+查看区域信息: $ firewall-cmd --get-active-zones
+查看指定接口所属区域：$ firewall-cmd --get-zone-of-interface=eth0
+拒绝所有包：# firewall-cmd --panic-on
+取消拒绝状态：# firewall-cmd --panic-off
+查看是否拒绝：$ firewall-cmd --query-panic
+ 
+更新防火墙规则：# firewall-cmd --reload
+# firewall-cmd --complete-reload
+两者的区别就是第一个无需断开连接，就是firewalld特性之一动态添加规则，第二个需要断开连接，类似重启服务
+ 
+将接口添加到区域，默认接口都在public
+# firewall-cmd --zone=public --add-interface=eth0
+永久生效再加上 --permanent 然后reload防火墙
+ 
+设置默认接口区域
+# firewall-cmd --set-default-zone=public
+立即生效无需重启
+ 
+打开端口（貌似这个才最常用）
+查看所有打开的端口：
+# firewall-cmd --zone=dmz --list-ports
+加入一个端口到区域：
+# firewall-cmd --zone=dmz --add-port=8080/tcp
+若要永久生效方法同上
+ 
+打开一个服务，类似于将端口可视化，服务需要在配置文件中添加，/etc/firewalld 目录下有services文件夹，这个不详细说了，详情参考文档
+# firewall-cmd --zone=work --add-service=smtp
+ 
+移除服务
+# firewall-cmd --zone=work --remove-service=smtp
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

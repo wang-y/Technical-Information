@@ -1,0 +1,175 @@
+jdk安装
+rpm -qa | grep openjdk | grep -v grep 
+rpm -e –nodeps java-1.7.0-openjdk-1.7.0.75-2.5.4.2.el7_0.x86_64 
+tar -zxvf jdk-7u75-linux-x64.tar.gz 
+mkdir /usr/java 
+mv ./jdk1.7.0_75 /usr/java/jdk1.7.0_75 
+rm -rf ./jdk1.7.0_75
+vi /etc/profile 
+export JAVA_HOME=/usr/java/jdk1.7.0_75 
+export CLASSPATH=.:$JAVA_HOME/jre/lib/rt.jar:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar:$JAVA_HOME/lib/RXTXcomm.jar
+export PATH=$PATH:$JAVA_HOME/bin
+source /etc/profile
+java -version 
+
+
+
+安装rocketmq
+tar -zxvf alibaba-rocketmq-3.2.6.tar.gz
+export ROCKETMQ_HOME=/home/jianglong/tools/alibaba-rocketmq
+export PATH=$PATH::$ROCKETMQ_HOME/bin
+source /etc/profile
+
+单master安装启动
+chmod +x mqadmin mqbroker mqfiltersrv mqshutdown  mqnamesrv
+nohup sh mqnamesrv &
+export NAMESRV_ADDR=192.168.1.100:9876
+nohup sh mqbroker &
+
+查看启动状态
+jps
+tail -f nohup.out 
+关闭rocket服务
+sh mqshutdown namesrv
+sh mqshutdown broker
+
+
+
+集群安装rocketmq(单个master； 多个master; 多 Master 多slaver 异步复制;  多 Master 多slaver 同步双写)
+多 Master部署(多个master)：
+
+# vim /etc/hosts(主机名修改)
+(mqnameserver1)
+192.168.1.102  mqnameserver1
+192.168.1.100  rocketmq-master1
+192.168.1.101  rocketmq-master2
+sed -i  '/HOSTNAME/d' /etc/sysconfig/network
+echo 'HOSTNAME=mqnameserver1'  >> /etc/sysconfig/network
+hostname mqnameserver1
+(master1)
+192.168.1.102  mqnameserver1
+192.168.1.100  rocketmq-master1
+sed -i  '/HOSTNAME/d' /etc/sysconfig/network
+echo 'HOSTNAME=rocketmq-master1'  >> /etc/sysconfig/network
+hostname rocketmq-master1
+(master2)
+192.168.1.102  mqnameserver1
+192.168.1.101  rocketmq-master2
+sed -i  '/HOSTNAME/d' /etc/sysconfig/network
+echo 'HOSTNAME=rocketmq-master2'  >> /etc/sysconfig/network
+hostname rocketmq-master2
+
+RocketMQ配置
+默认配置模板
+(broker)
+(生成)sh mqbroker -m > broker.p
+修改配置
+加载配置 nohup sh mqbroker -c broker.p
+(namesrv)
+
+(mqnameserver1)
+配置文件不变
+(master1)
+vim /home/jianglong/tools/alibaba-rocketmq/conf/2m-noslave/broker-a.properties
+brokerClusterName=orieangemq
+namesrvAddr=mqnameserver1:9876
+brokerName=master1
+brokerId=0
+flushIntervalCommitLog=1000
+maxTransferBytesOnMessageInMemory=262144
+maxTransferCountOnMessageInMemory=32
+maxTransferBytesOnMessageInDisk=65536
+maxTransferCountOnMessageInDisk=8
+accessMessageInMemoryMaxRatio=40
+listenPort=10911
+deleteWhen=04
+fileReservedTime=72
+mapedFileSizeCommitLog=1073741824
+mapedFileSizeConsumeQueue=10000000
+destroyMapedFileIntervalForcibly=120000
+redeleteHangedFileInterval=120000
+diskMaxUsedSpaceRatio=88
+defaultTopicQueueNums=4
+maxMessageSize=65536
+flushCommitLogLeastPages=4
+flushConsumeQueueLeastPages=2
+flushCommitLogThoroughInterval=10000
+flushConsumeQueueThoroughInterval=60000
+sendMessageThreadPoolNums=128
+pullMessageThreadPoolNums=128
+flushCommitLogTimed=false
+checkTransactionMessageEnable=false
+rejectTransactionMessage=false
+fetchNamesrvAddrByAddressServer=false
+messageIndexEnable=true
+messageIndexSafe=false
+cleanFileForciblyEnable=true
+autoCreateTopicEnable=true
+autoCreateSubscriptionGroup=true
+brokerRole=Master
+flushDiskType=ASYNC_FLUSH
+storePathRootDir=/data/rocketmq/store/master1
+storePathCommitLog=/data/rocketmq/store/commitlog/master1
+
+master2
+vim /home/jianglong/tools/alibaba-rocketmq/conf/2m-noslave/broker-a.properties
+brokerClusterName=orieangemq
+namesrvAddr=mqnameserver1:9876
+brokerName=master2
+brokerId=0
+flushIntervalCommitLog=1000
+maxTransferBytesOnMessageInMemory=262144
+maxTransferCountOnMessageInMemory=32
+maxTransferBytesOnMessageInDisk=65536
+maxTransferCountOnMessageInDisk=8
+accessMessageInMemoryMaxRatio=40
+listenPort=10911
+deleteWhen=04
+fileReservedTime=72
+mapedFileSizeCommitLog=1073741824
+mapedFileSizeConsumeQueue=10000000
+destroyMapedFileIntervalForcibly=120000
+redeleteHangedFileInterval=120000
+diskMaxUsedSpaceRatio=88
+defaultTopicQueueNums=4
+maxMessageSize=65536
+flushCommitLogLeastPages=4
+flushConsumeQueueLeastPages=2
+flushCommitLogThoroughInterval=10000
+flushConsumeQueueThoroughInterval=60000
+sendMessageThreadPoolNums=128
+pullMessageThreadPoolNums=128
+flushCommitLogTimed=false
+checkTransactionMessageEnable=false
+rejectTransactionMessage=false
+fetchNamesrvAddrByAddressServer=false
+messageIndexEnable=true
+messageIndexSafe=false
+cleanFileForciblyEnable=true
+autoCreateTopicEnable=true
+autoCreateSubscriptionGroup=true
+brokerRole=Master
+flushDiskType=ASYNC_FLUSH
+storePathRootDir=/data/rocketmq/store/master2
+storePathCommitLog=/data/rocketmq/store/commitlog/master2
+
+
+runbroker.sh参数调整(runbroker.sh需要根据内存大小进行适当地调整)
+JAVA_OPT_1="-server-Xms80g -Xmx80g -Xmn20g -XX:PermSize=1g -XX:MaxPermSize=1g"
+
+mkdir -p /data/rocketmq/store/commitlog  /data/logs
+cd /home/jianglong/tools/alibaba-rocketmq/conf && sed -i  's#${user.home}#/data#g' *.xml
+
+启动NameServer【master1、master2】
+cd /home/jianglong/tools/alibaba-rocketmq/bin
+(namesrv)
+service iptables stop
+nohup sh mqnamesrv &
+(master）
+service iptables stop
+nohup sh mqbroker -c ../conf/2m-noslave/broker-a.properties  >/dev/null 2>&1 &
+关闭window防火墙
+
+验证
+netstat -ntlp
+jps
